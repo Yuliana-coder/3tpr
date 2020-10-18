@@ -28,8 +28,6 @@
 
       <!-- <template v-else> -->
         
-        <div>{{outputData.i}}</div>
-        <div>{{outputData.j}}</div>
         <div>
           <button class="btn" @click="isIteration=true">Ввести количество итераций</button>
           <button class="btn" @click="isIteration=false">Ввести епсилон</button>
@@ -44,31 +42,42 @@
         </div>
         <button class="btn" @click="startAlgorithm">Запустить алгоритм</button>
 
-        <div v-for="(item, key) in outputData" :key="key">{{item}}</div>
-
-<!-- { "k": 1, "j": 0, "arrG": [ 6, 4, 5 ], "M": 4, "V": 6, "arrH": [ 6, 2, 5 ], "i": 0 } -->
-        <div class="app-page__table-wrapper">
-          <table class="app-page__table">
-            <tr class="app-page__table-header">
-              <td>K</td>
-              <td>j</td>
-              <td v-for="key4 in arrG.length" :key="key4">g{{key4}}</td>
-              <td>M</td>
-              <td>V</td>
-              <td v-for="key3 in arrH.length" :key="key3">h{{key3}}</td>
-              <td>i</td>
-            </tr>
-            <tr v-for="(item, key5) in outputData" :key="key5">
-              <td>{{item.k}}</td>
-              <td>{{item.j}}</td>
-              <td v-for="(g,key1) in item.arrG" :key="key1">{{+g.toFixed(3)}}</td>
-              <td>{{+(item.M).toFixed(3)}}</td>
-              <td>{{+(item.V).toFixed(3)}}</td>
-              <td v-for="(h,key2) in item.arrH" :key="key2">{{+h.toFixed(3)}}</td>
-              <td>{{item.i}}</td>
-            </tr>
-          </table>
+        <div class="app-page__data">
+          <div class="app-page__data-item">
+            <h5 class="app-page__data-title">Смешанные стратегии</h5>
+            <div>{{probabilityVectorI}}</div>
+            <div>{{probabilityVectorJ}}</div>
+          </div>
+          <div v-if="isStart" class="app-page__data-item">
+            <h5 class="app-page__data-title">Оценки</h5>
+            <div>Няжняя граница {{(+(outputData[outputData.length-1]).M).toFixed(3)}}</div>
+            <div>Верхняя граница {{(+(outputData[outputData.length-1]).V).toFixed(3)}}</div>
+         </div>
         </div>
+        <template v-if="isStart">
+          <div class="app-page__table-wrapper">
+            <table class="app-page__table">
+              <tr class="app-page__table-header">
+                <td>K</td>
+                <td>j</td>
+                <td v-for="key4 in arrG.length" :key="key4">g{{key4}}</td>
+                <td>M</td>
+                <td>V</td>
+                <td v-for="key3 in arrH.length" :key="key3+arrG.length">h{{key3}}</td>
+                <td>i</td>
+              </tr>
+              <tr v-for="(item, key5) in outputData" :key="key5">
+                <td>{{item.k}}</td>
+                <td>{{item.j}}</td>
+                <td v-for="(g,key1) in item.arrG" :key="key1">{{+g.toFixed(3)}}</td>
+                <td>{{+(item.M).toFixed(3)}}</td>
+                <td>{{+(item.V).toFixed(3)}}</td>
+                <td v-for="(h,key2) in item.arrH" :key="key2+item.arrG.length">{{+h.toFixed(3)}}</td>
+                <td>{{item.i}}</td>
+              </tr>
+            </table>
+          </div>
+        </template>
 
       <!-- </template> -->
       
@@ -117,7 +126,7 @@ export default {
     },
   methods: {
     startInputMatrix() {
-      this.isStart = !this.isStart;
+      // this.isStart = !this.isStart;
     },
     setDemension() {
       let arr = new Array(parseInt(this.columns));
@@ -129,6 +138,7 @@ export default {
       this.matrix = arr;
     },
     startAlgorithm() {
+      this.isStart = !this.isStart;
       this.paymentMatrix = [...this.matrix].map((item) => {
         return ([...item]);
       });
@@ -138,39 +148,6 @@ export default {
           return parseInt(item)
         });
       }
-
-      // let paymentMatrixColumn = [];
-      // let rowsMin = [];
-      // let columnsMax = [];
-      // for(let i = 0; i < this.paymentMatrix[0].length; i++){
-      //   let tmpArr = [];
-      //   for(let j = 0; j < this.paymentMatrix[i].length; j++) {
-      //     tmpArr.push(this.paymentMatrix[j][i]);
-      //   }
-      //   paymentMatrixColumn.push(tmpArr);
-      // }
-
-      // for(let i = 0; i < this.paymentMatrix.length; i++){
-      //   rowsMin.push(Math.min.apply(null,this.paymentMatrix[i]));
-
-      // }
-
-      // for(let i = 0; i < paymentMatrixColumn.length; i++){
-      //   columnsMax.push(Math.max.apply(null,paymentMatrixColumn[i]));
-      // }
-
-      // let saddlePointArr = rowsMin.filter(function(obj) { return columnsMax.indexOf(obj) >= 0; });
-
-      // if(saddlePointArr.length) {
-      //   this.saddlePoint = saddlePointArr[0];
-      //   this.probabilityVectorI = (new Array(parseInt(this.columns))).fill(0);
-      //   this.probabilityVectorI[columnsMax.indexOf(this.saddlePoint)] = 1;
-      //   this.probabilityVectorJ = (new Array(parseInt(this.rows))).fill(0);
-      //   this.probabilityVectorJ[rowsMin.indexOf(this.saddlePoint)] = 1;
-      // }
-
-      // console.log('rowsMin', rowsMin, 'columnsMax', columnsMax, 'saddlePoint', this.saddlePoint);
-      // console.log('i',  this.probabilityVectorI, 'j',  this.probabilityVectorJ);
 
       if(this.isIteration) {
         this.algorithmWithIteration();
@@ -288,15 +265,15 @@ export default {
 
       let count = 1;
       
-      for(let i = 1; i < arr.length; i++) {
+      for(let i = 1; i < arr.length + 1; i++) {
         if(arr[i - 1] != arr[i]){
           letArrProb.push(count/arr.length);
           if(arr[i - 1] != arr[i] - 1){
             letArrProb.push(0); // нулевая вероятность, такой индекс не встречался
           }
           count = 1;
-        }else if(i === arr.length - 1 && count != 0){
-          count = count + 1
+        }
+        else if(i === arr.length-1 && count === 1 && letArrProb.length < len){
           letArrProb.push(count/arr.length);
         }
         else{
@@ -314,7 +291,6 @@ export default {
       }else{
         this.probabilityVectorJ = letArrProb;
       }
-      console.log(letArrProb);
     }
   }
 }
@@ -403,5 +379,15 @@ td {
 th, td {
   padding: 5px;
   text-align: left;
+}
+.app-page__data {
+  display: flex;
+  justify-content: center;
+}
+.app-page__data-title {
+  margin: 5px 0;
+}
+.app-page__data-item {
+  margin-left: 30px;
 }
 </style>
