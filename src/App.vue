@@ -2,7 +2,7 @@
   <div id="app">
     <div class="app-page">
       <h2 class="app-page__title">Лабораторная работа № 3. Метод Брауна-Робинсона</h2>
-      <h4 class="app-page__terminate-message" v-if="terminateForcibly">Количество итераций превысило 500 или что-то пошло не так</h4>
+      <h4 class="app-page__terminate-message" v-if="terminateForcibly">Количество итераций превысило 10000 или что-то пошло не так</h4>
       <!-- <template v-if="!isStart"> -->
         <span>Введите размерность платежной матрицы</span>
         <div class="app-page__selectors-wrapper">
@@ -23,7 +23,7 @@
         </section>
         <button class="btn" v-if="isConfirmDemension" @click="setDemension">Подтвердить размерность</button>
 
-        <button class="btn" @click="startInputMatrix">Далее</button>
+        <!-- <button class="btn" @click="startInputMatrix">Далее</button> -->
       <!-- </template> -->
 
       <!-- <template v-else> -->
@@ -44,12 +44,31 @@
         </div>
         <button class="btn" @click="startAlgorithm">Запустить алгоритм</button>
 
-        <template v-if="saddlePoint">
-          <h5>Седловая точка: {{saddlePoint}}</h5>
-          <span>Векторы вероятностей {{probabilityVectorI}} {{probabilityVectorJ}}</span>
-        </template>
-
         <div v-for="(item, key) in outputData" :key="key">{{item}}</div>
+
+<!-- { "k": 1, "j": 0, "arrG": [ 6, 4, 5 ], "M": 4, "V": 6, "arrH": [ 6, 2, 5 ], "i": 0 } -->
+        <div class="app-page__table-wrapper">
+          <table class="app-page__table">
+            <tr class="app-page__table-header">
+              <td>K</td>
+              <td>j</td>
+              <td v-for="key4 in arrG.length" :key="key4">g{{key4}}</td>
+              <td>M</td>
+              <td>V</td>
+              <td v-for="key3 in arrH.length" :key="key3">h{{key3}}</td>
+              <td>i</td>
+            </tr>
+            <tr v-for="(item, key5) in outputData" :key="key5">
+              <td>{{item.k}}</td>
+              <td>{{item.j}}</td>
+              <td v-for="(g,key1) in item.arrG" :key="key1">{{+g.toFixed(3)}}</td>
+              <td>{{+(item.M).toFixed(3)}}</td>
+              <td>{{+(item.V).toFixed(3)}}</td>
+              <td v-for="(h,key2) in item.arrH" :key="key2">{{+h.toFixed(3)}}</td>
+              <td>{{item.i}}</td>
+            </tr>
+          </table>
+        </div>
 
       <!-- </template> -->
       
@@ -120,46 +139,44 @@ export default {
         });
       }
 
-      let paymentMatrixColumn = [];
-      let rowsMin = [];
-      let columnsMax = [];
-      for(let i = 0; i < this.paymentMatrix[0].length; i++){
-        let tmpArr = [];
-        for(let j = 0; j < this.paymentMatrix[i].length; j++) {
-          tmpArr.push(this.paymentMatrix[j][i]);
-        }
-        paymentMatrixColumn.push(tmpArr);
-      }
+      // let paymentMatrixColumn = [];
+      // let rowsMin = [];
+      // let columnsMax = [];
+      // for(let i = 0; i < this.paymentMatrix[0].length; i++){
+      //   let tmpArr = [];
+      //   for(let j = 0; j < this.paymentMatrix[i].length; j++) {
+      //     tmpArr.push(this.paymentMatrix[j][i]);
+      //   }
+      //   paymentMatrixColumn.push(tmpArr);
+      // }
 
-      for(let i = 0; i < this.paymentMatrix.length; i++){
-        rowsMin.push(Math.min.apply(null,this.paymentMatrix[i]));
+      // for(let i = 0; i < this.paymentMatrix.length; i++){
+      //   rowsMin.push(Math.min.apply(null,this.paymentMatrix[i]));
 
-      }
+      // }
 
-      for(let i = 0; i < paymentMatrixColumn.length; i++){
-        columnsMax.push(Math.max.apply(null,paymentMatrixColumn[i]));
-      }
+      // for(let i = 0; i < paymentMatrixColumn.length; i++){
+      //   columnsMax.push(Math.max.apply(null,paymentMatrixColumn[i]));
+      // }
 
-      let saddlePointArr = rowsMin.filter(function(obj) { return columnsMax.indexOf(obj) >= 0; });
+      // let saddlePointArr = rowsMin.filter(function(obj) { return columnsMax.indexOf(obj) >= 0; });
 
-      if(saddlePointArr.length) {
-        this.saddlePoint = saddlePointArr[0];
-        this.probabilityVectorI = (new Array(parseInt(this.columns))).fill(0);
-        this.probabilityVectorI[columnsMax.indexOf(this.saddlePoint)] = 1;
-        this.probabilityVectorJ = (new Array(parseInt(this.rows))).fill(0);
-        this.probabilityVectorJ[rowsMin.indexOf(this.saddlePoint)] = 1;
-      }
+      // if(saddlePointArr.length) {
+      //   this.saddlePoint = saddlePointArr[0];
+      //   this.probabilityVectorI = (new Array(parseInt(this.columns))).fill(0);
+      //   this.probabilityVectorI[columnsMax.indexOf(this.saddlePoint)] = 1;
+      //   this.probabilityVectorJ = (new Array(parseInt(this.rows))).fill(0);
+      //   this.probabilityVectorJ[rowsMin.indexOf(this.saddlePoint)] = 1;
+      // }
 
-      console.log('rowsMin', rowsMin, 'columnsMax', columnsMax, 'saddlePoint', this.saddlePoint);
-      console.log('i',  this.probabilityVectorI, 'j',  this.probabilityVectorJ);
+      // console.log('rowsMin', rowsMin, 'columnsMax', columnsMax, 'saddlePoint', this.saddlePoint);
+      // console.log('i',  this.probabilityVectorI, 'j',  this.probabilityVectorJ);
 
-      if(!this.saddlePoint) {
       if(this.isIteration) {
         this.algorithmWithIteration();
       }else {
         this.algorithmWithEpsilon();
       }
-    }
 
       this.vectorOfProbabilities('i');
       this.vectorOfProbabilities('j');
@@ -203,7 +220,7 @@ export default {
         this.currentIndexColumn = this.arrH.indexOf(this.V);
         this.currentIndexRow =  this.arrG.indexOf(this.M);
         count = count + 1;
-        if(count > 25) {
+        if(count > 10000) {
           this.terminateForcibly = true;
         }
       }
@@ -342,6 +359,49 @@ input {
   width: 50px;
   margin: 4px;
   border: 1px solid #707070;
-  border-radius: 3px;
+}
+.app-page__table-wrapper {
+  padding: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+}
+.app-page__table {
+  font-size: 15px;
+  border-radius: 10px;
+  border-spacing: 0;
+  text-align: center;
+}
+.app-page__table-header {
+  background-color: lightsteelblue;
+}
+table {
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid black;
+}
+table {
+  border: 1px solid black;
+}
+table {
+  width: 80%;
+}
+
+th {
+  height: 20px;
+}
+th {
+  text-align: left;
+}
+td {
+  height: 20px;
+  vertical-align: bottom;
+}
+th, td {
+  padding: 5px;
+  text-align: left;
 }
 </style>
