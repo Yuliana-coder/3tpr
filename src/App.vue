@@ -2,31 +2,15 @@
   <div id="app">
     <div class="app-page">
       <h2 class="app-page__title">Лабораторная работа № 3. Метод Брауна-Робинсона</h2>
-      <h4 class="app-page__terminate-message" v-if="terminateForcibly">Количество итераций превысило 10 или что-то пошло не так</h4>
+      <h4 class="app-page__terminate-message" v-if="terminateForcibly">Количество итераций превысило 500 или что-то пошло не так</h4>
       <!-- <template v-if="!isStart"> -->
         <span>Введите размерность платежной матрицы</span>
         <div class="app-page__selectors-wrapper">
-          <select class="app-page__selector-item" title="Количество" v-model="rows">
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-            <option>5</option>
-            <option>6</option>
-            <option>7</option>
-            <option>8</option>
-            <option>9</option>
-            <option>10</option>
+          <select @change = "isConfirmDemension = true" class="app-page__selector-item" title="Количество" v-model="columns">
+            <option v-for="n in 9" :key="n">{{n+1}}</option>
           </select>
-          <select class="app-page__selector-item" v-model="columns">
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-            <option>5</option>
-            <option>6</option>
-            <option>7</option>
-            <option>8</option>
-            <option>9</option>
-            <option>10</option>
+          <select @change = "isConfirmDemension = true" class="app-page__selector-item" v-model="rows">
+            <option v-for="n in 9" :key="n">{{n+1}}</option>
           </select> 
           
         </div>
@@ -34,45 +18,40 @@
 
         <section v-if="matrix && matrix.length" class="app-page__input-matrix">
           <div v-for="(element,key1) in matrix" :key="key1" class="app-page__matrix-wrapperr">
-            <input v-for="(element1, key2) in element" :key="key2" v-model="matrix[key1][key2]" />
+            <input type="number" v-for="(element1, key2) in element" :key="key2" v-model="matrix[key1][key2]" />
           </div>
         </section>
+        <button class="btn" v-if="isConfirmDemension" @click="setDemension">Подтвердить размерность</button>
 
-        <button @click="startInputMatrix">Далее</button>
+        <button class="btn" @click="startInputMatrix">Далее</button>
       <!-- </template> -->
 
       <!-- <template v-else> -->
-        <h4>Выберите</h4>
         
         <div>{{outputData.i}}</div>
         <div>{{outputData.j}}</div>
         <div>
-          <button @click="isIteration=true">Ввести количество итераций</button>
-          <button @click="isIteration=false">Ввести епсилон</button>
+          <button class="btn" @click="isIteration=true">Ввести количество итераций</button>
+          <button class="btn" @click="isIteration=false">Ввести епсилон</button>
         </div>
         <div v-if="isIteration">
           <span>k = </span>
-          <input @input="epsilon=null" v-model="iteration"/>
+          <input type="number" min="0" @input="epsilon=null" v-model="iteration"/>
         </div>
         <div v-else>
           <span>епсилон = </span>
-          <input @epsilon="iteration=null" v-model="epsilon"/>
+          <input type="number" @epsilon="iteration=null" v-model="epsilon"/>
         </div>
-        <button @click="startAlgorithm">Запустить алгоритм</button>
-        {{paymentMatrix}}
+        <button class="btn" @click="startAlgorithm">Запустить алгоритм</button>
+
+        <template v-if="saddlePoint">
+          <h5>Седловая точка: {{saddlePoint}}</h5>
+          <span>Векторы вероятностей {{probabilityVectorI}} {{probabilityVectorJ}}</span>
+        </template>
 
         <div v-for="(item, key) in outputData" :key="key">{{item}}</div>
 
-
-
       <!-- </template> -->
-      
-      <!-- <div v-for="(attribute, index) in attributes">
-        <p>{{ attribute.name }}</p>
-        <div v-for="(attributevalue,indexval) in attribute.attribute_values">
-          <input v-model="attributes"  :value="attributevalue.id">
-        </div>
-</div> -->
       
     </div>
   </div>
@@ -85,6 +64,7 @@ export default {
    data(){
         return {
             isStart: false,
+            isConfirmDemension: false,
             rows: 2,
             columns: 2,
             matrix: null,
@@ -101,7 +81,10 @@ export default {
             rowIndMax: null,
             columnIndMin: null,
             outputData: [],
-            terminateForcibly: false
+            terminateForcibly: false,
+            saddlePoint: null,
+            probabilityVectorI: [],
+            probabilityVectorJ: []
         }
     },
     beforeMount:  function () {
@@ -116,6 +99,8 @@ export default {
   methods: {
     startInputMatrix() {
       this.isStart = !this.isStart;
+    },
+    setDemension() {
       let arr = new Array(parseInt(this.columns));
 
       for (var i = 0; i < arr.length; i++) {
@@ -135,11 +120,46 @@ export default {
         });
       }
 
+      let paymentMatrixColumn = [];
+      let rowsMin = [];
+      let columnsMax = [];
+      for(let i = 0; i < this.paymentMatrix[0].length; i++){
+        let tmpArr = [];
+        for(let j = 0; j < this.paymentMatrix[i].length; j++) {
+          tmpArr.push(this.paymentMatrix[j][i]);
+        }
+        paymentMatrixColumn.push(tmpArr);
+      }
+
+      for(let i = 0; i < this.paymentMatrix.length; i++){
+        rowsMin.push(Math.min.apply(null,this.paymentMatrix[i]));
+
+      }
+
+      for(let i = 0; i < paymentMatrixColumn.length; i++){
+        columnsMax.push(Math.max.apply(null,paymentMatrixColumn[i]));
+      }
+
+      let saddlePointArr = rowsMin.filter(function(obj) { return columnsMax.indexOf(obj) >= 0; });
+
+      if(saddlePointArr.length) {
+        this.saddlePoint = saddlePointArr[0];
+        this.probabilityVectorI = (new Array(parseInt(this.columns))).fill(0);
+        this.probabilityVectorI[columnsMax.indexOf(this.saddlePoint)] = 1;
+        this.probabilityVectorJ = (new Array(parseInt(this.rows))).fill(0);
+        this.probabilityVectorJ[rowsMin.indexOf(this.saddlePoint)] = 1;
+      }
+
+      console.log('rowsMin', rowsMin, 'columnsMax', columnsMax, 'saddlePoint', this.saddlePoint);
+      console.log('i',  this.probabilityVectorI, 'j',  this.probabilityVectorJ);
+
+      if(!this.saddlePoint) {
       if(this.isIteration) {
         this.algorithmWithIteration();
       }else {
         this.algorithmWithEpsilon();
       }
+    }
 
       this.vectorOfProbabilities('i');
       this.vectorOfProbabilities('j');
@@ -227,7 +247,7 @@ export default {
         this.currentIndexColumn = this.arrH.indexOf(this.V);
         this.currentIndexRow =  this.arrG.indexOf(this.M);
         count = count + 1;
-        if(count > 25) {
+        if(count > 500) {
           this.terminateForcibly = true;
         }
       }
@@ -272,6 +292,11 @@ export default {
         console.log(len);
       }
 
+      if(index === "i"){
+        this.probabilityVectorI = letArrProb;
+      }else{
+        this.probabilityVectorJ = letArrProb;
+      }
       console.log(letArrProb);
     }
   }
@@ -296,5 +321,27 @@ export default {
 }
 .app-page__terminate-message {
   color:red;
+}
+.btn {
+    margin: 10px 15px;
+    padding: 10px 8px;
+    border: none;
+    max-width: 280px;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 700;
+    background-color: lightseagreen;
+    line-height: 1;
+    cursor: pointer;
+    outline: 0;
+}
+.btn:hover {
+  color: #fff;
+}
+input {
+  width: 50px;
+  margin: 4px;
+  border: 1px solid #707070;
+  border-radius: 3px;
 }
 </style>
