@@ -3,6 +3,7 @@
     <div class="app-page">
       <h2 class="app-page__title">Лабораторная работа № 3. Метод Брауна-Робинсона</h2>
       <h4 class="app-page__terminate-message" v-if="terminateForcibly">Количество итераций превысило 10000 или что-то пошло не так</h4>
+      <h4 class="app-page__terminate-message" v-if="naN">Пожалуйста, проверьте, все ли поля матрицы заполнены числами.</h4>
       <!-- <template v-if="!isStart"> -->
         <span>Введите размерность платежной матрицы</span>
         <div class="app-page__selectors-wrapper">
@@ -15,6 +16,9 @@
           
         </div>
         строк {{rows}} -  столбцов {{columns}}
+        
+        <button type="info" @click="load" width="100%">Загрузить</button>
+        <input id="downloadData" type="file" hidden ref="file" @change="loadData"/>
 
         <section v-if="matrix && matrix.length" class="app-page__input-matrix">
           <div v-for="(element,key1) in matrix" :key="key1" class="app-page__matrix-wrapperr">
@@ -27,7 +31,7 @@
       <!-- </template> -->
 
       <!-- <template v-else> -->
-        
+        <!-- <h5 v-if="waitAlgorithm">Идет выполнение алгоритма...</h5> -->
         <div>
           <button class="btn" @click="isIteration=true">Ввести количество итераций</button>
           <button class="btn" @click="isIteration=false">Ввести епсилон</button>
@@ -41,43 +45,49 @@
           <input type="number" @epsilon="iteration=null" v-model="epsilon"/>
         </div>
         <button class="btn" @click="startAlgorithm">Запустить алгоритм</button>
-
-        <div class="app-page__data">
-          <div class="app-page__data-item">
-            <h5 class="app-page__data-title">Смешанные стратегии</h5>
-            <div>{{probabilityVectorI}}</div>
-            <div>{{probabilityVectorJ}}</div>
+        <button :disabled="!isStart"  @click="clearField" class="btn">Очистить</button>
+        <button :disabled="!isStart" @click="save" class="btn">Сохранить</button>
+        <div id="saveContent">
+          <div class="app-page__data">
+            <div v-if="isStart" class="app-page__data-item">
+            <div class="app-page__data-item">
+              <h5 class="app-page__data-title">Смешанные стратегии</h5>
+              <div>{{probabilityVectorI}}</div>
+              <div>{{probabilityVectorJ}}</div>
+            </div>
+              <h5 class="app-page__data-title">Оценки</h5>
+              <div id="1">Нижняя граница {{(+(outputData[outputData.length-1]).M).toFixed(3)}}</div>
+              <div>Верхняя граница {{(+(outputData[outputData.length-1]).V).toFixed(3)}}</div>
           </div>
-          <div v-if="isStart" class="app-page__data-item">
-            <h5 class="app-page__data-title">Оценки</h5>
-            <div>Няжняя граница {{(+(outputData[outputData.length-1]).M).toFixed(3)}}</div>
-            <div>Верхняя граница {{(+(outputData[outputData.length-1]).V).toFixed(3)}}</div>
-         </div>
+          </div>
+          <template v-if="isStart">
+            <!-- <template v-if="!hiddenElement"> -->
+            <!-- </template> -->
+            <div class="app-page__table-wrapper">
+              <table class="app-page__table">
+                <tr class="app-page__table-header">
+                  <td>K</td>
+                  <td>j</td>
+                  <td v-for="key4 in arrG.length" :key="key4">g{{key4}}</td>
+                  <td>M</td>
+                  <td>V</td>
+                  <td v-for="key3 in arrH.length" :key="key3+arrG.length">h{{key3}}</td>
+                  <td>i</td>
+                </tr>
+                <tr v-for="(item, key5) in outputData" :key="key5">
+                  <td>{{item.k}}</td>
+                  <td>{{item.j}}</td>
+                  <td v-for="(g,key1) in item.arrG" :key="key1">{{+g.toFixed(3)}}</td>
+                  <td>{{+(item.M).toFixed(3)}}</td>
+                  <td>{{+(item.V).toFixed(3)}}</td>
+                  <td v-for="(h,key2) in item.arrH" :key="key2+item.arrG.length">{{+h.toFixed(3)}}</td>
+                  <td>{{item.i}}</td>
+                </tr>
+              </table>
+            </div>
+            <!-- </template> -->
+          </template>
         </div>
-        <template v-if="isStart">
-          <div class="app-page__table-wrapper">
-            <table class="app-page__table">
-              <tr class="app-page__table-header">
-                <td>K</td>
-                <td>j</td>
-                <td v-for="key4 in arrG.length" :key="key4">g{{key4}}</td>
-                <td>M</td>
-                <td>V</td>
-                <td v-for="key3 in arrH.length" :key="key3+arrG.length">h{{key3}}</td>
-                <td>i</td>
-              </tr>
-              <tr v-for="(item, key5) in outputData" :key="key5">
-                <td>{{item.k}}</td>
-                <td>{{item.j}}</td>
-                <td v-for="(g,key1) in item.arrG" :key="key1">{{+g.toFixed(3)}}</td>
-                <td>{{+(item.M).toFixed(3)}}</td>
-                <td>{{+(item.V).toFixed(3)}}</td>
-                <td v-for="(h,key2) in item.arrH" :key="key2+item.arrG.length">{{+h.toFixed(3)}}</td>
-                <td>{{item.i}}</td>
-              </tr>
-            </table>
-          </div>
-        </template>
 
       <!-- </template> -->
       
@@ -112,7 +122,10 @@ export default {
             terminateForcibly: false,
             saddlePoint: null,
             probabilityVectorI: [],
-            probabilityVectorJ: []
+            probabilityVectorJ: [],
+            naN: false,
+            waitAlgorithm: false,
+            hiddenElement: false
         }
     },
     beforeMount:  function () {
@@ -124,6 +137,11 @@ export default {
 
       this.matrix = arr;
     },
+  computed:{
+    file(){
+      return this.$refs['file'];
+    }
+  },
   methods: {
     startInputMatrix() {
       // this.isStart = !this.isStart;
@@ -136,9 +154,13 @@ export default {
       }   
 
       this.matrix = arr;
+      console.log(arr);
     },
     startAlgorithm() {
-      this.isStart = !this.isStart;
+      this.naN = false;
+      if(this.isStart) {
+        this.clearField();
+      }
       this.paymentMatrix = [...this.matrix].map((item) => {
         return ([...item]);
       });
@@ -149,14 +171,29 @@ export default {
         });
       }
 
-      if(this.isIteration) {
-        this.algorithmWithIteration();
-      }else {
-        this.algorithmWithEpsilon();
+      for(let i = 0; i < this.paymentMatrix.length; i++) {
+        if((this.paymentMatrix[i].filter((item) => {
+          return isNaN(item);
+        })).length){
+          this.naN = true;
+        }
       }
 
-      this.vectorOfProbabilities('i');
-      this.vectorOfProbabilities('j');
+
+      if(!this.naN) {
+        this.isStart = !this.isStart;
+        console.log(this.paymentMatrix);
+
+        if(this.isIteration) {
+          this.algorithmWithIteration();
+        }else {
+          this.algorithmWithEpsilon();
+        }
+
+        this.vectorOfProbabilities('i');
+        this.vectorOfProbabilities('j');
+      }
+      this.waitAlgorithm = false;
     },
     algorithmWithIteration() {
       let count = 1;
@@ -208,7 +245,7 @@ export default {
       this.arrG = (new Array(parseInt(this.columns))).fill(0);
       this.arrH = (new Array(parseInt(this.rows))).fill(0);
 
-      while((parseFloat(this.epsilon) < Math.abs((this.M/count - this.V/count)) || this.M === null) && count < 100)
+      while((parseFloat(this.epsilon) < Math.abs((this.M/count - this.V/count)) || this.M === null) && count < 10000)
       {
         let currentRow = this.paymentMatrix[this.currentIndexRow];
         let currentColumn = [];
@@ -241,7 +278,7 @@ export default {
         this.currentIndexColumn = this.arrH.indexOf(this.V);
         this.currentIndexRow =  this.arrG.indexOf(this.M);
         count = count + 1;
-        if(count > 500) {
+        if(count > 10000) {
           this.terminateForcibly = true;
         }
       }
@@ -261,11 +298,9 @@ export default {
       let letArrProb = [];
       arr = arr.sort();
 
-      console.log(arr);
 
       let count = 1;
-      
-      for(let i = 1; i < arr.length + 1; i++) {
+      for(let i = 1; i < arr.length; i++) {
         if(arr[i - 1] != arr[i]){
           letArrProb.push(count/arr.length);
           if(arr[i - 1] != arr[i] - 1){
@@ -273,25 +308,97 @@ export default {
           }
           count = 1;
         }
-        else if(i === arr.length-1 && count === 1 && letArrProb.length < len){
-          letArrProb.push(count/arr.length);
-        }
+        // else if(i === arr.length-1 && letArrProb.length < len){
+        //   letArrProb.push(count/arr.length);
+        // }
         else{
           count = count + 1;
+          if(i === arr.length-1 && letArrProb.length < len){
+            letArrProb.push(count/arr.length);
+          }
         }
       }
 
       if(letArrProb.length < len){
+        count = 0;
         letArrProb.push(count/arr.length); // если нет последнего индекса, то он встречался, 0 вреоятность
-        console.log(len);
       }
 
       if(index === "i"){
-        this.probabilityVectorI = letArrProb;
+        this.probabilityVectorI = letArrProb.map((item) => {return +item.toFixed(3)});
       }else{
-        this.probabilityVectorJ = letArrProb;
+        this.probabilityVectorJ = letArrProb.map((item) => {return +item.toFixed(3)});
       }
-    }
+    },
+    clearField(){
+      this.isStart = false
+      // this.columns = 2;
+      // this.rows = 2;
+      this.outputData = [];
+      document.getElementById("downloadData").value = "";
+      this.naN = false;
+      this.terminateForcibly = false;
+      // let arr = new Array(parseInt(this.columns));
+
+      // for (var i = 0; i < arr.length; i++) {
+      //    arr[i] = (new Array(parseInt(this.rows))).fill(1);
+      // }   
+
+      // this.matrix = arr;
+    },
+    save() {
+      this.hiddenElement = true;
+      // let txtData = document.getElementById("1").textContent;
+      let txtData = document.getElementById("saveContent").innerText;
+      this.download(txtData, 'МетодБР_Данные.txt', 'text/plain');
+      this.hiddenElement = false;
+    },
+    download(content, fileName, contentType) {
+    let a = document.createElement("a");
+    let file = new Blob([content], {type: contentType});
+    a.href = window.URL.createObjectURL(file);
+    a.download = fileName;
+    a.click();
+    },
+    load(){
+      this.file.click();
+    },
+    loadData() {
+      this.naN = false;
+      let file = this.file.files[0];
+      let reader = new FileReader();
+      reader.readAsText(file);
+      const program = this;
+      reader.onload = function() {
+          if(!reader.result) {
+            console.log(this.result);
+            program.naN = true;
+          }else{
+            console.log(this.result);
+            let data = JSON.parse(reader.result);
+            let isEqualLength = true;
+            if(data && data.length) {
+              let elemLen = data[0].length;
+              for(let i = 1; i < data.length; i++) {
+                if(data[i].length != elemLen) {
+                  isEqualLength = false;
+                }
+              }
+              if(isEqualLength && data.length){
+              program.matrix = data;
+              program.rows = data[0].length;
+              program.columns = data.length;
+              console.log(data);
+              console.log(program.matrix, program.rows, program.columns);
+            }else{
+              program.naN = true;
+            }
+          }else{
+            program.naN = true;
+          }
+        }
+      };
+    }  
   }
 }
 </script>
