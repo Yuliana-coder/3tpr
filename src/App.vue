@@ -4,8 +4,9 @@
       <h2 class="app-page__title">Лабораторная работа № 3. Метод Брауна-Робинсона</h2>
       <h4 class="app-page__terminate-message" v-if="terminateForcibly">Количество итераций превысило 10000 или что-то пошло не так</h4>
       <h4 class="app-page__terminate-message" v-if="naN">Пожалуйста, проверьте, все ли поля матрицы заполнены числами.</h4>
-      <!-- <template v-if="!isStart"> -->
-        <span>Введите размерность платежной матрицы</span>
+        <button class="btn" type="info" @click="load" width="100%">Загрузить</button>
+        <input id="downloadData" type="file" hidden ref="file" @change="loadData"/>
+        <div>Введите размерность платежной матрицы</div>
         <div class="app-page__selectors-wrapper">
           <select @change = "isConfirmDemension = true" class="app-page__selector-item" title="Количество" v-model="columns">
             <option v-for="n in 9" :key="n">{{n+1}}</option>
@@ -13,12 +14,7 @@
           <select @change = "isConfirmDemension = true" class="app-page__selector-item" v-model="rows">
             <option v-for="n in 9" :key="n">{{n+1}}</option>
           </select> 
-          
         </div>
-        строк {{rows}} -  столбцов {{columns}}
-        
-        <button type="info" @click="load" width="100%">Загрузить</button>
-        <input id="downloadData" type="file" hidden ref="file" @change="loadData"/>
 
         <section v-if="matrix && matrix.length" class="app-page__input-matrix">
           <div v-for="(element,key1) in matrix" :key="key1" class="app-page__matrix-wrapperr">
@@ -27,21 +23,16 @@
         </section>
         <button class="btn" v-if="isConfirmDemension" @click="setDemension">Подтвердить размерность</button>
 
-        <!-- <button class="btn" @click="startInputMatrix">Далее</button> -->
-      <!-- </template> -->
-
-      <!-- <template v-else> -->
-        <!-- <h5 v-if="waitAlgorithm">Идет выполнение алгоритма...</h5> -->
         <div>
           <button class="btn" @click="isIteration=true">Ввести количество итераций</button>
-          <button class="btn" @click="isIteration=false">Ввести епсилон</button>
+          <button class="btn" @click="isIteration=false">Ввести эпсилон</button>
         </div>
         <div v-if="isIteration">
           <span>k = </span>
           <input type="number" min="0" @input="epsilon=null" v-model="iteration"/>
         </div>
         <div v-else>
-          <span>епсилон = </span>
+          <span>эпсилон = </span>
           <input type="number" @epsilon="iteration=null" v-model="epsilon"/>
         </div>
         <button class="btn" @click="startAlgorithm">Запустить алгоритм</button>
@@ -61,8 +52,6 @@
           </div>
           </div>
           <template v-if="isStart">
-            <!-- <template v-if="!hiddenElement"> -->
-            <!-- </template> -->
             <div class="app-page__table-wrapper">
               <table class="app-page__table">
                 <tr class="app-page__table-header">
@@ -85,12 +74,8 @@
                 </tr>
               </table>
             </div>
-            <!-- </template> -->
           </template>
-        </div>
-
-      <!-- </template> -->
-      
+        </div>     
     </div>
   </div>
 </template>
@@ -108,7 +93,7 @@ export default {
             matrix: null,
             isIteration: true,
             iteration: 3,
-            epsilon: null,
+            epsilon: 0.01,
             paymentMatrix: null,
             currentIndexRow: 0,
             currentIndexColumn: 0,
@@ -120,12 +105,9 @@ export default {
             columnIndMin: null,
             outputData: [],
             terminateForcibly: false,
-            saddlePoint: null,
             probabilityVectorI: [],
             probabilityVectorJ: [],
             naN: false,
-            waitAlgorithm: false,
-            hiddenElement: false
         }
     },
     beforeMount:  function () {
@@ -143,9 +125,6 @@ export default {
     }
   },
   methods: {
-    startInputMatrix() {
-      // this.isStart = !this.isStart;
-    },
     setDemension() {
       let arr = new Array(parseInt(this.columns));
 
@@ -179,7 +158,6 @@ export default {
         }
       }
 
-
       if(!this.naN) {
         this.isStart = !this.isStart;
         console.log(this.paymentMatrix);
@@ -193,9 +171,9 @@ export default {
         this.vectorOfProbabilities('i');
         this.vectorOfProbabilities('j');
       }
-      this.waitAlgorithm = false;
     },
     algorithmWithIteration() {
+      this.outputData = [];
       let count = 1;
 
       this.arrG = (new Array(parseInt(this.columns))).fill(0);
@@ -240,7 +218,10 @@ export default {
       }
     },
     algorithmWithEpsilon() {
+      this.outputData = [];
       let count = 1;
+      this.M= null;
+      this.V = null;
 
       this.arrG = (new Array(parseInt(this.columns))).fill(0);
       this.arrH = (new Array(parseInt(this.rows))).fill(0);
@@ -249,6 +230,8 @@ export default {
       {
         let currentRow = this.paymentMatrix[this.currentIndexRow];
         let currentColumn = [];
+        this.currentIndexRow = 0;
+        this.currentIndexColumn = 0;
         for(let i = 0; i < this.paymentMatrix.length; i++) {
           currentColumn.push(this.paymentMatrix[i][this.currentIndexColumn]);
         }
@@ -298,30 +281,17 @@ export default {
       let letArrProb = [];
       arr = arr.sort();
 
+      let arrayObj = arr.reduce(function(acc, el) {
+        acc[el] = (acc[el] || 0) + 1;
+        return acc;
+      }, {});
 
-      let count = 1;
-      for(let i = 1; i < arr.length; i++) {
-        if(arr[i - 1] != arr[i]){
-          letArrProb.push(count/arr.length);
-          if(arr[i - 1] != arr[i] - 1){
-            letArrProb.push(0); // нулевая вероятность, такой индекс не встречался
-          }
-          count = 1;
+      for(let i = 0; i < len; i++) {
+        if(arrayObj[i]){
+          letArrProb.push(arrayObj[i]/this.outputData.length)
+        }else{
+          letArrProb.push(0);
         }
-        // else if(i === arr.length-1 && letArrProb.length < len){
-        //   letArrProb.push(count/arr.length);
-        // }
-        else{
-          count = count + 1;
-          if(i === arr.length-1 && letArrProb.length < len){
-            letArrProb.push(count/arr.length);
-          }
-        }
-      }
-
-      if(letArrProb.length < len){
-        count = 0;
-        letArrProb.push(count/arr.length); // если нет последнего индекса, то он встречался, 0 вреоятность
       }
 
       if(index === "i"){
@@ -332,25 +302,15 @@ export default {
     },
     clearField(){
       this.isStart = false
-      // this.columns = 2;
-      // this.rows = 2;
       this.outputData = [];
       document.getElementById("downloadData").value = "";
       this.naN = false;
       this.terminateForcibly = false;
-      // let arr = new Array(parseInt(this.columns));
-
-      // for (var i = 0; i < arr.length; i++) {
-      //    arr[i] = (new Array(parseInt(this.rows))).fill(1);
-      // }   
-
-      // this.matrix = arr;
     },
     save() {
       this.hiddenElement = true;
-      // let txtData = document.getElementById("1").textContent;
       let txtData = document.getElementById("saveContent").innerText;
-      this.download(txtData, 'МетодБР_Данные.txt', 'text/plain');
+      this.download(txtData, '3лрДанные.txt', 'text/plain');
       this.hiddenElement = false;
     },
     download(content, fileName, contentType) {
