@@ -16,7 +16,7 @@
           </select> 
         </div>
 
-        <section v-if="matrix && matrix.length" class="app-page__input-matrix">
+        <section v-if="matrix && matrix.length" id="outputMatrix" class="app-page__input-matrix">
           <div v-for="(element,key1) in matrix" :key="key1" class="app-page__matrix-wrapperr">
             <input type="number" v-for="(element1, key2) in element" :key="key2" v-model="matrix[key1][key2]" />
           </div>
@@ -27,6 +27,7 @@
           <button class="btn" @click="isIteration=true">Ввести количество итераций</button>
           <button class="btn" @click="isIteration=false">Ввести эпсилон</button>
         </div>
+        <!-- <template v-else> -->
         <div v-if="isIteration">
           <span>k = </span>
           <input type="number" min="0" @input="epsilon=null" v-model="iteration"/>
@@ -35,47 +36,55 @@
           <span>эпсилон = </span>
           <input type="number" @epsilon="iteration=null" v-model="epsilon"/>
         </div>
-        <button class="btn" @click="startAlgorithm">Запустить алгоритм</button>
+        <div @click.stop="start">
+          <button id="startAlg" class="btn">Запустить алгоритм</button>
+        </div>
         <button :disabled="!isStart"  @click="clearField" class="btn">Очистить</button>
         <button :disabled="!isStart" @click="save" class="btn">Сохранить</button>
-        <div id="saveContent">
-          <div class="app-page__data">
-            <div v-if="isStart" class="app-page__data-item">
-            <div class="app-page__data-item">
-              <h5 class="app-page__data-title">Смешанные стратегии</h5>
-              <div>{{probabilityVectorI}}</div>
-              <div>{{probabilityVectorJ}}</div>
+          <div v-if="wait"><h4>Выполняется алгоритм...</h4></div>
+          <div id="saveContent">
+            <div class="app-page__data">
+              <div v-if="isStart" class="app-page__data-item">
+              <div>
+                <h5 class="app-page__data-title">Смешанные стратегии</h5>
+                <div class="app-page__data-vector">{{probabilityVectorI}}</div>
+                <div class="app-page__data-vector">{{probabilityVectorJ}}</div>
+              </div>
+                <h5 class="app-page__data-title">Оценки</h5>
+                <div id="1">Нижняя граница {{(+(outputData[outputData.length-1]).M).toFixed(3)}}</div>
+                <div>Верхняя граница {{(+(outputData[outputData.length-1]).V).toFixed(3)}}</div>
+                <div>Платежная матрица</div>
+                <div>{{paymentMatrix}}</div>
+                <div v-if="isIteration">k = {{iteration}}</div>
+                <div v-else>епсилон = {{epsilon}}</div>
+              </div>
             </div>
-              <h5 class="app-page__data-title">Оценки</h5>
-              <div id="1">Нижняя граница {{(+(outputData[outputData.length-1]).M).toFixed(3)}}</div>
-              <div>Верхняя граница {{(+(outputData[outputData.length-1]).V).toFixed(3)}}</div>
-          </div>
-          </div>
-          <template v-if="isStart">
-            <div class="app-page__table-wrapper">
-              <table class="app-page__table">
-                <tr class="app-page__table-header">
-                  <td>K</td>
-                  <td>j</td>
-                  <td v-for="key4 in arrG.length" :key="key4">g{{key4}}</td>
-                  <td>M</td>
-                  <td>V</td>
-                  <td v-for="key3 in arrH.length" :key="key3+arrG.length">h{{key3}}</td>
-                  <td>i</td>
-                </tr>
-                <tr v-for="(item, key5) in outputData" :key="key5">
-                  <td>{{item.k}}</td>
-                  <td>{{item.j}}</td>
-                  <td v-for="(g,key1) in item.arrG" :key="key1">{{+g.toFixed(3)}}</td>
-                  <td>{{+(item.M).toFixed(3)}}</td>
-                  <td>{{+(item.V).toFixed(3)}}</td>
-                  <td v-for="(h,key2) in item.arrH" :key="key2+item.arrG.length">{{+h.toFixed(3)}}</td>
-                  <td>{{item.i}}</td>
-                </tr>
-              </table>
-            </div>
-          </template>
-        </div>     
+            <template v-if="isStart">
+              <div class="app-page__table-wrapper">
+                <table class="app-page__table">
+                  <tr class="app-page__table-header">
+                    <td>K</td>
+                    <td>j</td>
+                    <td v-for="key4 in arrG.length" :key="key4">g{{key4}}</td>
+                    <td>M</td>
+                    <td>V</td>
+                    <td v-for="key3 in arrH.length" :key="key3+arrG.length">h{{key3}}</td>
+                    <td>i</td>
+                  </tr>
+                  <tr v-for="(item, key5) in outputData" :key="key5">
+                    <td>{{item.k}}</td>
+                    <td>{{item.j}}</td>
+                    <td v-for="(g,key1) in item.arrG" :key="key1">{{+g.toFixed(3)}}</td>
+                    <td>{{+(item.M).toFixed(3)}}</td>
+                    <td>{{+(item.V).toFixed(3)}}</td>
+                    <td v-for="(h,key2) in item.arrH" :key="key2+item.arrG.length">{{+h.toFixed(3)}}</td>
+                    <td>{{item.i}}</td>
+                  </tr>
+                </table>
+              </div>
+            </template>
+          </div> 
+        <!-- </template>     -->
     </div>
   </div>
 </template>
@@ -108,6 +117,7 @@ export default {
             probabilityVectorI: [],
             probabilityVectorJ: [],
             naN: false,
+            wait: false
         }
     },
     beforeMount:  function () {
@@ -133,13 +143,14 @@ export default {
       }   
 
       this.matrix = arr;
-      console.log(arr);
+    },
+    start() {
+      this.wait = true;
+      setTimeout(() => this.startAlgorithm(), 100);
     },
     startAlgorithm() {
+      if(this.wait) {
       this.naN = false;
-      if(this.isStart) {
-        this.clearField();
-      }
       this.paymentMatrix = [...this.matrix].map((item) => {
         return ([...item]);
       });
@@ -160,8 +171,6 @@ export default {
 
       if(!this.naN) {
         this.isStart = !this.isStart;
-        console.log(this.paymentMatrix);
-
         if(this.isIteration) {
           this.algorithmWithIteration();
         }else {
@@ -170,6 +179,8 @@ export default {
 
         this.vectorOfProbabilities('i');
         this.vectorOfProbabilities('j');
+      }
+      this.wait = false;
       }
     },
     algorithmWithIteration() {
@@ -226,12 +237,10 @@ export default {
       this.arrG = (new Array(parseInt(this.columns))).fill(0);
       this.arrH = (new Array(parseInt(this.rows))).fill(0);
 
-      while((parseFloat(this.epsilon) < Math.abs((this.M/count - this.V/count)) || this.M === null) && count < 10000)
+      while((parseFloat(this.epsilon) < Math.abs(((this.M)/count) - ((this.V)/count)) || this.M === null) && count < 10000)
       {
         let currentRow = this.paymentMatrix[this.currentIndexRow];
         let currentColumn = [];
-        this.currentIndexRow = 0;
-        this.currentIndexColumn = 0;
         for(let i = 0; i < this.paymentMatrix.length; i++) {
           currentColumn.push(this.paymentMatrix[i][this.currentIndexColumn]);
         }
@@ -308,10 +317,8 @@ export default {
       this.terminateForcibly = false;
     },
     save() {
-      this.hiddenElement = true;
-      let txtData = document.getElementById("saveContent").innerText;
+      let txtData = document.getElementById("outputMatrix").innerText + document.getElementById("saveContent").innerText;
       this.download(txtData, '3лрДанные.txt', 'text/plain');
-      this.hiddenElement = false;
     },
     download(content, fileName, contentType) {
     let a = document.createElement("a");
@@ -331,10 +338,8 @@ export default {
       const program = this;
       reader.onload = function() {
           if(!reader.result) {
-            console.log(this.result);
             program.naN = true;
           }else{
-            console.log(this.result);
             let data = JSON.parse(reader.result);
             let isEqualLength = true;
             if(data && data.length) {
@@ -348,8 +353,6 @@ export default {
               program.matrix = data;
               program.rows = data[0].length;
               program.columns = data.length;
-              console.log(data);
-              console.log(program.matrix, program.rows, program.columns);
             }else{
               program.naN = true;
             }
@@ -395,6 +398,9 @@ export default {
     cursor: pointer;
     outline: 0;
 }
+.btn_color {
+  background-color: red;
+}
 .btn:hover {
   color: #fff;
 }
@@ -405,7 +411,6 @@ input {
 }
 .app-page__table-wrapper {
   padding: 0;
-  width: 100%;
   display: flex;
   justify-content: center;
   margin: 20px;
@@ -456,5 +461,11 @@ th, td {
 }
 .app-page__data-item {
   margin-left: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.app-page__data-vector {
+  align-content: center;
 }
 </style>
